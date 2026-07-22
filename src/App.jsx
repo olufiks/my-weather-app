@@ -81,7 +81,7 @@ export default function App() {
       </div>
 
       {weather ? (
-        <div className={`main-card ${isDaytime ? "card-day" : "card-night"}`}>
+        <div className={`main-card ${isDaytime ? "card-day" : "card-night"}`} key={selectedCity.name}>
           <div className="main-info">
             <div className="main-text">
               <div className="location">
