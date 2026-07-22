@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import "./App.css";
 
 function tempToColor(temp) {
@@ -16,6 +16,12 @@ export default function App() {
   const [selectedCity, setSelectedCity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchRef = useRef(null);
+  const debounceRef = useRef(null);
 
   useEffect(() => {
     fetch("/api/cities")
@@ -33,6 +39,59 @@ export default function App() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const fetchSearch = useCallback((q) => {
+    if (!q.trim()) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    fetch(`/api/cities/search?q=${encodeURIComponent(q.trim())}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSearchResults(data);
+        setSearching(false);
+      })
+      .catch(() => {
+        setSearchResults([]);
+        setSearching(false);
+      });
+  }, []);
+
+  function handleSearchChange(e) {
+    const val = e.target.value;
+    setSearchQuery(val);
+    setShowDropdown(true);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSearch(val), 300);
+  }
+
+  function handleSelectResult(result) {
+    if (!cities.find((c) => c.name === result.name)) {
+      setCities((prev) => [...prev, result]);
+    }
+    setSelectedCity(result);
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowDropdown(false);
+  }
+
+  function handleSearchFocus() {
+    if (searchQuery.trim()) {
+      setShowDropdown(true);
+    }
+  }
 
   if (loading) {
     return (
@@ -59,11 +118,31 @@ export default function App() {
         <div className="logo">
           <img src="weathericon.png" alt="Weather" />
         </div>
-        <input
-          type="text"
-          className="search-bar"
-          placeholder="Search city..."
-        />
+        <div className="search-wrapper" ref={searchRef}>
+          <input
+            type="text"
+            className="search-bar"
+            placeholder="Search city..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onFocus={handleSearchFocus}
+          />
+          {showDropdown && (searchResults.length > 0 || searching) && (
+            <div className="search-dropdown">
+              {searching && <div className="search-status">Searching...</div>}
+              {searchResults.map((result) => (
+                <button
+                  key={`${result.name}-${result.country}`}
+                  className="search-result"
+                  onClick={() => handleSelectResult(result)}
+                >
+                  <span className="search-result-name">{result.name}</span>
+                  <span className="search-result-country">{result.country}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="city-tabs">

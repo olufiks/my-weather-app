@@ -65,12 +65,6 @@ const WMO_ICONS = {
   99: "⛈️",
 };
 
-function isDaytimeFromSunrise(sunsetStr) {
-  const now = new Date();
-  const sunset = new Date(sunsetStr);
-  return now < sunset;
-}
-
 function determineIsDaytime(cityTimezone, hourly, sunriseStr, sunsetStr) {
   const now = new Date();
   const currentHour = parseInt(
@@ -230,6 +224,68 @@ function formatCityResponse(city, data) {
     },
   };
 }
+
+async function geocodeCity(query) {
+  const params = new URLSearchParams({
+    name: query,
+    count: "8",
+    language: "en",
+    format: "json",
+  });
+  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params.toString()}`);
+  if (!res.ok) throw new Error(`Geocoding API error: ${res.status}`);
+  const data = await res.json();
+  return (data.results || []).map((r) => ({
+    name: r.name,
+    country: r.country_code || "",
+    timezone: r.timezone || "UTC",
+    lat: r.latitude,
+    lng: r.longitude,
+  }));
+}
+
+router.get("/search", async (req, res) => {
+  try {
+    const q = (req.query.q || "").trim();
+    if (!q) return res.json([]);
+
+    const existing = db
+      .prepare("SELECT * FROM cities WHERE LOWER(name) LIKE LOWER(?)")
+      .all(`%${q}%`);
+
+    if (existing.length > 0) {
+      const results = await Promise.all(
+        existing.map(async (city) => {
+          try {
+            const data = await fetchWeather(city);
+            return formatCityResponse(city, data);
+          } catch {
+            return { name: city.name, country: city.country, timezone: city.timezone, lat: city.lat, lng: city.lng, weather: null };
+          }
+        })
+      );
+      return res.json(results);
+    }
+
+    const geoResults = await geocodeCity(q);
+    const results = await Promise.all(
+      geoResults.slice(0, 5).map(async (city) => {
+        try {
+          db.prepare(
+            "INSERT OR IGNORE INTO cities (name, country, timezone, lat, lng) VALUES (?, ?, ?, ?, ?)"
+          ).run(city.name, city.country, city.timezone, city.lat, city.lng);
+          const data = await fetchWeather(city);
+          return formatCityResponse(city, data);
+        } catch {
+          return { name: city.name, country: city.country, timezone: city.timezone, lat: city.lat, lng: city.lng, weather: null };
+        }
+      })
+    );
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {
