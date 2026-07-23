@@ -172,24 +172,11 @@ export default function App() {
         </div>
       </header>
 
-      <div className="city-tabs">
-        {searchCity && (
-          <button className="tab tab-back" onClick={handleBackToTabs}>
-            ← Back
-          </button>
-        )}
-        {cities.map((city) => (
-          <button
-            key={city.name}
-            className={`tab ${!searchCity && selectedCity?.name === city.name ? "active" : ""} ${
-              city.weather?.isDaytime ? "tab-day" : "tab-night"
-            }`}
-            onClick={() => { setSearchCity(null); setSelectedCity(city); }}
-          >
-            {city.weather ? (city.weather.isDaytime ? "☀️" : "🌙") : "🌡️"} {city.name}
-          </button>
-        ))}
-      </div>
+      {searchCity && (
+        <button className="back-button" onClick={handleBackToTabs}>
+          ← Back to Abuja
+        </button>
+      )}
 
       {searchLoading ? (
         <div className="main-card">

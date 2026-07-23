@@ -19,10 +19,6 @@ db.exec(`
 `);
 
 const CITIES_SEED = [
-  { name: "New York", country: "US", timezone: "America/New_York", lat: 40.7128, lng: -74.006 },
-  { name: "London", country: "UK", timezone: "Europe/London", lat: 51.5074, lng: -0.1278 },
-  { name: "Tokyo", country: "JP", timezone: "Asia/Tokyo", lat: 35.6762, lng: 139.6503 },
-  { name: "Nairobi", country: "KE", timezone: "Africa/Nairobi", lat: -1.2921, lng: 36.8219 },
   { name: "Abuja", country: "NG", timezone: "Africa/Lagos", lat: 9.0579, lng: 7.4951 },
 ];
 
