@@ -346,6 +346,17 @@ body::-webkit-scrollbar-thumb:hover {
   transform: scale(0.95);
 }
 
+.tab-back {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  font-style: italic;
+}
+
+.tab-back:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-style: solid;
+}
+
 /* Main Weather Card */
 .main-card {
   background: rgba(255, 255, 255, 0.15);

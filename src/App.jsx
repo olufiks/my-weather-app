@@ -20,6 +20,8 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchCity, setSearchCity] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -78,13 +80,37 @@ export default function App() {
   }
 
   function handleSelectResult(result) {
-    if (!cities.find((c) => c.name === result.name)) {
-      setCities((prev) => [...prev, result]);
-    }
-    setSelectedCity(result);
     setSearchQuery("");
     setSearchResults([]);
     setShowDropdown(false);
+    setSearchLoading(true);
+
+    const params = new URLSearchParams({
+      name: result.name,
+      country: result.country || "",
+      timezone: result.timezone || "UTC",
+      lat: String(result.lat),
+      lng: String(result.lng),
+    });
+
+    fetch(`/api/cities/weather?${params.toString()}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch weather");
+        return res.json();
+      })
+      .then((data) => {
+        setSearchCity(data);
+        setSearchLoading(false);
+      })
+      .catch(() => {
+        setSearchCity(null);
+        setSearchLoading(false);
+      });
+  }
+
+  function handleBackToTabs() {
+    setSearchCity(null);
+    setSelectedCity(cities[0] || null);
   }
 
   function handleSearchFocus() {
@@ -92,6 +118,10 @@ export default function App() {
       setShowDropdown(true);
     }
   }
+
+  const viewing = searchCity || selectedCity;
+  const weather = viewing?.weather;
+  const isDaytime = weather?.isDaytime;
 
   if (loading) {
     return (
@@ -108,9 +138,6 @@ export default function App() {
       </div>
     );
   }
-
-  const weather = selectedCity?.weather;
-  const isDaytime = weather?.isDaytime;
 
   return (
     <div className={`app-container ${isDaytime ? "daytime" : "nighttime"}`}>
@@ -146,25 +173,34 @@ export default function App() {
       </header>
 
       <div className="city-tabs">
+        {searchCity && (
+          <button className="tab tab-back" onClick={handleBackToTabs}>
+            ← Back
+          </button>
+        )}
         {cities.map((city) => (
           <button
             key={city.name}
-            className={`tab ${selectedCity?.name === city.name ? "active" : ""} ${
+            className={`tab ${!searchCity && selectedCity?.name === city.name ? "active" : ""} ${
               city.weather?.isDaytime ? "tab-day" : "tab-night"
             }`}
-            onClick={() => setSelectedCity(city)}
+            onClick={() => { setSearchCity(null); setSelectedCity(city); }}
           >
             {city.weather ? (city.weather.isDaytime ? "☀️" : "🌙") : "🌡️"} {city.name}
           </button>
         ))}
       </div>
 
-      {weather ? (
-        <div className={`main-card ${isDaytime ? "card-day" : "card-night"}`} key={selectedCity.name}>
+      {searchLoading ? (
+        <div className="main-card">
+          <div className="loading">Loading weather data...</div>
+        </div>
+      ) : weather ? (
+        <div className={`main-card ${isDaytime ? "card-day" : "card-night"}`} key={viewing.name}>
           <div className="main-info">
             <div className="main-text">
               <div className="location">
-                📍 {selectedCity.name}, {selectedCity.country}
+                📍 {viewing.name}, {viewing.country}
               </div>
               <div className="temp-display">{weather.temperature}°</div>
               <div className="condition-text">
@@ -176,7 +212,7 @@ export default function App() {
                 </div>
               </div>
               <div className="timezone-badge">
-                {selectedCity.timezone}
+                {viewing.timezone}
               </div>
             </div>
             <div className="sun-circle">
@@ -285,7 +321,7 @@ export default function App() {
         </div>
       ) : (
         <div className="main-card">
-          <div className="error">Weather data unavailable for {selectedCity.name}</div>
+          <div className="error">Weather data unavailable for {viewing?.name}</div>
         </div>
       )}
     </div>

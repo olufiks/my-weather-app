@@ -23,24 +23,31 @@ const CITIES_SEED = [
   { name: "London", country: "UK", timezone: "Europe/London", lat: 51.5074, lng: -0.1278 },
   { name: "Tokyo", country: "JP", timezone: "Asia/Tokyo", lat: 35.6762, lng: 139.6503 },
   { name: "Nairobi", country: "KE", timezone: "Africa/Nairobi", lat: -1.2921, lng: 36.8219 },
+  { name: "Abuja", country: "NG", timezone: "Africa/Lagos", lat: 9.0579, lng: 7.4951 },
 ];
 
 function seedCities() {
-  const count = db.prepare("SELECT COUNT(*) as count FROM cities").get();
-  if (count.count > 0) return;
+  const existing = db.prepare("SELECT name FROM cities").all();
+  const existingNames = new Set(existing.map((c) => c.name));
 
   const insert = db.prepare(
-    "INSERT INTO cities (name, country, timezone, lat, lng) VALUES (?, ?, ?, ?, ?)"
+    "INSERT OR IGNORE INTO cities (name, country, timezone, lat, lng) VALUES (?, ?, ?, ?, ?)"
   );
+  const remove = db.prepare("DELETE FROM cities WHERE name = ?");
 
   const transaction = db.transaction(() => {
+    const seedNames = new Set(CITIES_SEED.map((c) => c.name));
+    for (const name of existingNames) {
+      if (!seedNames.has(name)) {
+        remove.run(name);
+      }
+    }
     for (const city of CITIES_SEED) {
       insert.run(city.name, city.country, city.timezone, city.lat, city.lng);
     }
   });
 
   transaction();
-  console.log("Cities seeded into database.");
 }
 
 seedCities();

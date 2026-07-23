@@ -254,34 +254,33 @@ router.get("/search", async (req, res) => {
       .all(`%${q}%`);
 
     if (existing.length > 0) {
-      const results = await Promise.all(
-        existing.map(async (city) => {
-          try {
-            const data = await fetchWeather(city);
-            return formatCityResponse(city, data);
-          } catch {
-            return { name: city.name, country: city.country, timezone: city.timezone, lat: city.lat, lng: city.lng, weather: null };
-          }
-        })
+      return res.json(
+        existing.map((c) => ({
+          name: c.name,
+          country: c.country,
+          timezone: c.timezone,
+          lat: c.lat,
+          lng: c.lng,
+        }))
       );
-      return res.json(results);
     }
 
     const geoResults = await geocodeCity(q);
-    const results = await Promise.all(
-      geoResults.slice(0, 5).map(async (city) => {
-        try {
-          db.prepare(
-            "INSERT OR IGNORE INTO cities (name, country, timezone, lat, lng) VALUES (?, ?, ?, ?, ?)"
-          ).run(city.name, city.country, city.timezone, city.lat, city.lng);
-          const data = await fetchWeather(city);
-          return formatCityResponse(city, data);
-        } catch {
-          return { name: city.name, country: city.country, timezone: city.timezone, lat: city.lat, lng: city.lng, weather: null };
-        }
-      })
-    );
-    res.json(results);
+    res.json(geoResults.slice(0, 8));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/weather", async (req, res) => {
+  try {
+    const { name, country, timezone, lat, lng } = req.query;
+    if (!name || lat == null || lng == null) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const data = await fetchWeather({ lat: parseFloat(lat), lng: parseFloat(lng), timezone: timezone || "UTC" });
+    res.json(formatCityResponse({ name, country: country || "", timezone: timezone || "UTC", lat: parseFloat(lat), lng: parseFloat(lng) }, data));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
