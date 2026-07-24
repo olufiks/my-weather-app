@@ -741,6 +741,7 @@ body::-webkit-scrollbar-thumb:hover {
   .main-info {
     flex-wrap: nowrap;
     align-items: center;
+    gap: 12px;
   }
 
   .main-text {
@@ -757,8 +758,8 @@ body::-webkit-scrollbar-thumb:hover {
   }
 
   .sun-circle {
-    width: 80px;
-    height: 80px;
+    width: 70px;
+    height: 70px;
     flex-shrink: 0;
     margin-bottom: 0;
   }
