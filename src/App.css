@@ -739,13 +739,13 @@ body::-webkit-scrollbar-thumb:hover {
   }
 
   .main-info {
-    flex-direction: column;
+    flex-wrap: nowrap;
     align-items: center;
-    text-align: center;
   }
 
   .main-text {
     min-width: 0;
+    text-align: left;
   }
 
   .location {
@@ -757,8 +757,9 @@ body::-webkit-scrollbar-thumb:hover {
   }
 
   .sun-circle {
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
     margin-bottom: 0;
   }
 
