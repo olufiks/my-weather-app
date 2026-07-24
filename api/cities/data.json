@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Abuja",
+    "country": "NG",
+    "timezone": "Africa/Lagos",
+    "lat": 9.0579,
+    "lng": 7.4951
+  },
+  {
+    "name": "London",
+    "country": "GB",
+    "timezone": "Europe/London",
+    "lat": 51.5074,
+    "lng": -0.1278
+  },
+  {
+    "name": "New York",
+    "country": "US",
+    "timezone": "America/New_York",
+    "lat": 40.7128,
+    "lng": -74.006
+  },
+  {
+    "name": "Tokyo",
+    "country": "JP",
+    "timezone": "Asia/Tokyo",
+    "lat": 35.6762,
+    "lng": 139.6503
+  },
+  {
+    "name": "Sydney",
+    "country": "AU",
+    "timezone": "Australia/Sydney",
+    "lat": -33.8688,
+    "lng": 151.2093
+  },
+  {
+    "name": "Mumbai",
+    "country": "IN",
+    "timezone": "Asia/Kolkata",
+    "lat": 19.076,
+    "lng": 72.8777
+  }
+]

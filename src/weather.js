@@ -1,8 +1,3 @@
-import { Router } from "express";
-import { db } from "../db.js";
-
-const router = Router();
-
 const WMO_CODES = {
   0: "Clear Sky",
   1: "Mainly Clear",
@@ -64,6 +59,15 @@ const WMO_ICONS = {
   96: "⛈️",
   99: "⛈️",
 };
+
+const DEFAULT_CITIES = [
+  { name: "Abuja", country: "NG", timezone: "Africa/Lagos", lat: 9.0579, lng: 7.4951 },
+  { name: "London", country: "GB", timezone: "Europe/London", lat: 51.5074, lng: -0.1278 },
+  { name: "New York", country: "US", timezone: "America/New_York", lat: 40.7128, lng: -74.006 },
+  { name: "Tokyo", country: "JP", timezone: "Asia/Tokyo", lat: 35.6762, lng: 139.6503 },
+  { name: "Sydney", country: "AU", timezone: "Australia/Sydney", lat: -33.8688, lng: 151.2093 },
+  { name: "Mumbai", country: "IN", timezone: "Asia/Kolkata", lat: 19.076, lng: 72.8777 },
+];
 
 function determineIsDaytime(cityTimezone, hourly, sunriseStr, sunsetStr) {
   const now = new Date();
@@ -225,7 +229,31 @@ function formatCityResponse(city, data) {
   };
 }
 
-async function geocodeCity(query) {
+export async function getCitiesWeather() {
+  const results = await Promise.all(
+    DEFAULT_CITIES.map(async (city) => {
+      try {
+        const data = await fetchWeather(city);
+        return formatCityResponse(city, data);
+      } catch (err) {
+        console.error(`Failed to fetch weather for ${city.name}:`, err.message);
+        return {
+          name: city.name,
+          country: city.country,
+          timezone: city.timezone,
+          lat: city.lat,
+          lng: city.lng,
+          weather: null,
+          error: err.message,
+        };
+      }
+    })
+  );
+  return results;
+}
+
+export async function searchCities(query) {
+  if (!query.trim()) return [];
   const params = new URLSearchParams({
     name: query,
     count: "8",
@@ -244,93 +272,7 @@ async function geocodeCity(query) {
   }));
 }
 
-router.get("/search", async (req, res) => {
-  try {
-    const q = (req.query.q || "").trim();
-    if (!q) return res.json([]);
-
-    const existing = db
-      .prepare("SELECT * FROM cities WHERE LOWER(name) LIKE LOWER(?)")
-      .all(`%${q}%`);
-
-    if (existing.length > 0) {
-      return res.json(
-        existing.map((c) => ({
-          name: c.name,
-          country: c.country,
-          timezone: c.timezone,
-          lat: c.lat,
-          lng: c.lng,
-        }))
-      );
-    }
-
-    const geoResults = await geocodeCity(q);
-    res.json(geoResults.slice(0, 8));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get("/weather", async (req, res) => {
-  try {
-    const { name, country, timezone, lat, lng } = req.query;
-    if (!name || lat == null || lng == null) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    const data = await fetchWeather({ lat: parseFloat(lat), lng: parseFloat(lng), timezone: timezone || "UTC" });
-    res.json(formatCityResponse({ name, country: country || "", timezone: timezone || "UTC", lat: parseFloat(lat), lng: parseFloat(lng) }, data));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get("/", async (req, res) => {
-  try {
-    const cities = db.prepare("SELECT * FROM cities").all();
-
-    const results = await Promise.all(
-      cities.map(async (city) => {
-        try {
-          const data = await fetchWeather(city);
-          return formatCityResponse(city, data);
-        } catch (err) {
-          console.error(`Failed to fetch weather for ${city.name}:`, err.message);
-          return {
-            name: city.name,
-            country: city.country,
-            timezone: city.timezone,
-            lat: city.lat,
-            lng: city.lng,
-            weather: null,
-            error: err.message,
-          };
-        }
-      })
-    );
-
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get("/:name", async (req, res) => {
-  try {
-    const city = db
-      .prepare("SELECT * FROM cities WHERE LOWER(name) = LOWER(?)")
-      .get(req.params.name);
-
-    if (!city) {
-      return res.status(404).json({ error: "City not found" });
-    }
-
-    const data = await fetchWeather(city);
-    res.json(formatCityResponse(city, data));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-export default router;
+export async function getCityWeather(city) {
+  const data = await fetchWeather(city);
+  return formatCityResponse(city, data);
+}

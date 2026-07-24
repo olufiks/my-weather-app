@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getCitiesWeather, searchCities, getCityWeather } from "./weather";
 import "./App.css";
 
 function tempToColor(temp) {
@@ -26,11 +27,7 @@ export default function App() {
   const debounceRef = useRef(null);
 
   useEffect(() => {
-    fetch("/api/cities")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch weather data");
-        return res.json();
-      })
+    getCitiesWeather()
       .then((data) => {
         setCities(data);
         setSelectedCity(data[0] || null);
@@ -59,8 +56,7 @@ export default function App() {
       return;
     }
     setSearching(true);
-    fetch(`/api/cities/search?q=${encodeURIComponent(q.trim())}`)
-      .then((res) => res.json())
+    searchCities(q.trim())
       .then((data) => {
         setSearchResults(data);
         setSearching(false);
@@ -85,19 +81,13 @@ export default function App() {
     setShowDropdown(false);
     setSearchLoading(true);
 
-    const params = new URLSearchParams({
+    getCityWeather({
       name: result.name,
       country: result.country || "",
       timezone: result.timezone || "UTC",
-      lat: String(result.lat),
-      lng: String(result.lng),
-    });
-
-    fetch(`/api/cities/weather?${params.toString()}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch weather");
-        return res.json();
-      })
+      lat: result.lat,
+      lng: result.lng,
+    })
       .then((data) => {
         setSearchCity(data);
         setSearchLoading(false);
@@ -134,7 +124,7 @@ export default function App() {
   if (error) {
     return (
       <div className="app-container">
-        <div className="error">Error: {error}. Make sure the server is running.</div>
+        <div className="error">Error: {error}.</div>
       </div>
     );
   }
